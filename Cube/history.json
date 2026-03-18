@@ -1,0 +1,47 @@
+[
+  {
+    "cube_string": "BUUBUULDDLBBLRRBRRUFFUFFURRBDDBDURDULLFLLFFRRLLDFBDFBD",
+    "solution": "L U D' B2 L2 U' F2 U' D",
+    "timestamp": "2026-03-17T21:02:04.891316"
+  },
+  {
+    "cube_string": "UUBUUBLLBRRRRRRRBBFFUFFUUUUFFFRDDRDDLLDLLDFFLDBBDBBLLD",
+    "solution": "D R F U2 D2 F2 B2 U2 D2 B2",
+    "timestamp": "2026-03-17T21:24:40.756870"
+  },
+  {
+    "cube_string": "URUFUFURUFDFLRLFDFLULBFBLULDLDBDBDLDBUBRLRBUBRDRFBFRDR",
+    "solution": "R L F B R L U D' L2 F2 U D L2 B2 R2 F2",
+    "timestamp": "2026-03-17T22:20:18.332818"
+  },
+  {
+    "cube_string": "UBUBULUBDBFBURURRFFULFFRDLDFDBRDDFFRBLLDLDLFRLRRLBBUUD",
+    "solution": "R F2 B2 D' L F' B' R' U' F R2 U' L2 D F2 R2 D R2 U' F2 R2 D' F2 D2",
+    "timestamp": "2026-03-17T22:39:26.065185"
+  },
+  {
+    "cube_string": "UDUDUDUDURLRLRLRLRFBFBFBFBFDUDUDUDUDLRLRLRLRLBFBFBFBFB",
+    "solution": "U2 D2 R2 L2 F2 B2",
+    "timestamp": "2026-03-17T23:00:21.515330"
+  },
+  {
+    "cube_string": "UUUUUUUUURLRRRRRRRFBFFFFFFFDDDDDDDDDLRLLLLLLLBFBBBBBBB",
+    "solution": "U R2 F2 B2 L2 D' R2 F2 B2 L2",
+    "timestamp": "2026-03-17T23:13:30.123307"
+  },
+  {
+    "cube_string": "RRUUUUURURRRURUDRRFFFFFBBFFLDLDDDLDDDLLLLLULDBBFFBBBBB",
+    "solution": "U2 F' D2 F R2 F L2 B U R2 D2 B2 R2 L2 U' R2 U2 R2 F2 D R2 D2 F2",
+    "timestamp": "2026-03-17T23:14:59.087514"
+  },
+  {
+    "cube_string": "FRFBURBBBUFDDRLLUFDULBFBBUDRRFFDFBFUULRDLRDDURDRUBLLLL",
+    "solution": "D B L F' U' L U2 R F U B2 U L2 U' B2 L2 D' F2 D L2 D B2 R2",
+    "timestamp": "2026-03-18T01:40:34.092494"
+  },
+  {
+    "cube_string": "UUUUUUUUURFRRRRRRRFRFFFFFFFDDDDDDDDDLBLLLLLLLBLBBBBBBB",
+    "solution": "R2 U' R2 U R2 B2 R2 U B2 U' R2 B2",
+    "timestamp": "2026-03-18T14:07:31.953528"
+  }
+]

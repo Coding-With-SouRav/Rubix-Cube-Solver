@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Rubik's Cube Solver - History & Playback</title>
+    <style>
+        /* ---------- styles (unchanged) ---------- */
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #palette {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 25px;
+            border-radius: 50px;
+            z-index: 20;
+            backdrop-filter: blur(5px);
+            transition: opacity 0.2s;
+        }
+
+        .color-btn {
+            width: 55px;
+            height: 55px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.25s, box-shadow 0.25s;
+            box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.4), 0 6px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .color-btn.selected {
+            transform: scale(1.15);
+            box-shadow: 0 0 25px yellow, 0 8px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 20;
+            transition: opacity 0.2s;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        #reset {
+            background: #f44336;
+        }
+
+        #reset:hover {
+            background: #d32f2f;
+        }
+
+        #solution {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #0f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 1.2rem;
+            text-align: center;
+            z-index: 30;
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #00ff00;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+            pointer-events: none;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        #error-message {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 0, 0, 0.95);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 10px;
+            z-index: 50;
+            font-weight: bold;
+            display: none;
+            text-align: center;
+            max-width: 700px;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+        }
+
+        /* History button and overlay */
+        #history-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 40;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: background 0.2s;
+        }
+
+        #history-btn:hover {
+            background: #1976D2;
+        }
+
+        /* Playback back button (visible only during playback) */
+        #playback-back-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 45;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: background 0.2s;
+            display: none;
+        }
+
+        #playback-back-btn:hover {
+            background: #fb8c00;
+        }
+
+        /* ---------- NEW: Speed control ---------- */
+        #speed-control {
+            position: absolute;
+            top: 25px;
+            left: 20px;
+            right: auto;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 30px;
+            z-index: 46;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            backdrop-filter: blur(5px);
+            font-size: 14px;
+            border: 1px solid #555;
+        }
+
+        #speed-control label {
+            cursor: default;
+        }
+
+        #speed-control input {
+            width: 120px;
+            cursor: pointer;
+            background: #333;
+            accent-color: #4CAF50;
+        }
+
+        #speed-value {
+            min-width: 20px;
+            text-align: right;
+        }
+
+        #history-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 200;
+            display: none;
+            overflow-y: auto;
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Premium scrollbar for history overlay */
+        #history-overlay::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        #history-overlay::-webkit-scrollbar-track {
+            background: #1a1a1a;
+            border-radius: 10px;
+        }
+
+        #history-overlay::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 10px;
+            border: 2px solid #1a1a1a;
+        }
+
+        #history-overlay::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+
+        #history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        #history-header h2 {
+            margin: 0;
+            font-size: 2rem;
+            color: #fff;
+        }
+
+        #back-btn {
+            background: #f44336;
+            padding: 8px 25px;
+            font-size: 1rem;
+        }
+
+        #history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding-bottom: 30px;
+        }
+
+        .history-entry {
+            background: #1e1e1e;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            border: 1px solid #333;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+            justify-content: space-between;
+        }
+
+        /* 3D Cube Thumbnail Styles - now draggable */
+        .cube-thumbnail {
+            width: 70px;
+            height: 70px;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateX(-20deg) rotateY(30deg);
+            /* default view */
+            flex-shrink: 0;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .cube-thumbnail:active {
+            cursor: grabbing;
+        }
+
+        .face {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 2px;
+            background: #222;
+            padding: 2px;
+            border-radius: 6px;
+            box-shadow: inset 0 0 0 1px #555;
+            box-sizing: border-box;
+        }
+
+        .face div {
+            width: 100%;
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .front {
+            transform: rotateY(0deg) translateZ(35px);
+        }
+
+        .back {
+            transform: rotateY(180deg) translateZ(35px);
+        }
+
+        .right {
+            transform: rotateY(90deg) translateZ(35px);
+        }
+
+        .left {
+            transform: rotateY(-90deg) translateZ(35px);
+        }
+
+        .up {
+            transform: rotateX(90deg) translateZ(35px);
+        }
+
+        .down {
+            transform: rotateX(-90deg) translateZ(35px);
+        }
+
+        .entry-info {
+            flex: 1;
+        }
+
+        .entry-algo {
+            font-family: monospace;
+            font-size: 1.3rem;
+            color: #ffaa00;
+            margin: 0 0 10px 0;
+            word-break: break-word;
+        }
+
+        .entry-timestamp {
+            color: #aaa;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+
+        .load-play-btn {
+            background: #4CAF50;
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+
+        .load-play-btn:hover {
+            background: #45a049;
+        }
+
+        .entry-menu {
+            position: relative;
+            display: inline-block;
+            margin-left: 15px;
+            flex-shrink: 0;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 28px;
+            line-height: 20px;
+            cursor: pointer;
+            padding: 0 8px;
+            border-radius: 50%;
+            transition: background 0.2s, color 0.2s;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-btn:hover {
+            background: #333;
+            color: white;
+        }
+
+        .menu-dropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 40px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+            z-index: 300;
+            min-width: 120px;
+            overflow: hidden;
+        }
+
+        .menu-dropdown.show {
+            display: block;
+        }
+
+        .menu-dropdown button {
+            width: 100%;
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            color: #ff6b6b;
+            font-size: 1rem;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 0;
+            box-shadow: none;
+            font-weight: normal;
+        }
+
+        .menu-dropdown button:hover {
+            background: #3a3a3a;
+            color: #ff4444;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="info"></div>
+    <div id="palette">
+        <div class="color-btn" style="background:#ffffff;" data-color="#ffffff"></div>
+        <div class="color-btn" style="background:#ffff00;" data-color="#ffff00"></div>
+        <div class="color-btn" style="background:#ff0000;" data-color="#ff0000"></div>
+        <div class="color-btn" style="background:#fb6712;" data-color="#fb6712"></div>
+        <div class="color-btn" style="background:#00ff00;" data-color="#00ff00"></div>
+        <div class="color-btn" style="background:#0000ff;" data-color="#0000ff"></div>
+    </div>
+    <div id="controls">
+        <button id="solve">SOLVE</button>
+        <button id="reset">RESET</button>
+    </div>
+    <div id="solution"></div>
+    <div id="error-message"></div>
+
+    <!-- History button (normal mode) -->
+    <button id="history-btn">📜 History</button>
+    <!-- Playback back button (appears during playback) -->
+    <button id="playback-back-btn">← Back to History</button>
+
+    <!-- NEW: Speed control slider -->
+    <div id="speed-control">
+        <label for="speed-slider">Speed:</label>
+        <input type="range" id="speed-slider" min="0.5" max="3" step="0.1" value="1">
+        <span id="speed-value">1.0x</span>
+    </div>
+
+    <!-- History overlay -->
+    <div id="history-overlay">
+        <div id="history-header">
+            <h2>Solved History</h2>
+            <button id="back-btn">← Back</button>
+        </div>
+        <div id="history-list"></div>
+    </div>
+
+    <!-- Three.js and OrbitControls -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+        // --- Configuration ---
+        const stickerSizeFactor = 0.83;
+        const gap = 0.03;
+        const cubeSize = 2.6;
+        const cubieSize = cubeSize / 3;
+        const effectiveSize = cubieSize - gap;
+        const stickerDepth = 0.05;
+        const BASE_DURATION = 2000; // ms per 90° turn at 1x speed
+
+        let currentDuration = BASE_DURATION; // will be updated by speed slider
+
+        const defaultCenters = {
+            U: '#ffff00', // Yellow
+            D: '#ffffff', // White
+            F: '#0000ff', // Blue
+            B: '#00ff00', // Green
+            L: '#fb6712', // Orange
+            R: '#ff0000'  // Red
+        };
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color("black");
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(7, 6, 8);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.autoRotate = false;
+        controls.enableZoom = true;
+        controls.target.set(0, 0, 0);
+        controls.maxPolarAngle = Math.PI;
+
+        // Materials
+        const colorMaterials = {
+            U: new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0x000000 }),
+            D: new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x000000 }),
+            F: new THREE.MeshStandardMaterial({ color: 0x0000ff, emissive: 0x000000 }),
+            B: new THREE.MeshStandardMaterial({ color: 0x00ff00, emissive: 0x000000 }),
+            L: new THREE.MeshStandardMaterial({ color: 0xfb6712, emissive: 0x000000 }),
+            R: new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x000000 }),
+            black: new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 })
+        };
+
+        // Global variables
+        let cubies = [];
+        let allStickers = [];
+
+        // --- Animation state for current move ---
+        let currentMoveAnimation = null; // { group, axis, startAngle, targetAngle, startTime, duration, resolve }
+
+        // --- Playback mode state ---
+        let playbackMode = false;
+        let savedMainCubeColors = null; // array of 54 hex strings
+
+        const axisToFace = {
+            '1,0,0': 'R',
+            '-1,0,0': 'L',
+            '0,1,0': 'U',
+            '0,-1,0': 'D',
+            '0,0,1': 'F',
+            '0,0,-1': 'B'
+        };
+
+        function getFaceFromDirection(dir) {
+            const eps = 0.1;
+            const x = Math.abs(dir.x) > eps ? (dir.x > 0 ? 1 : -1) : 0;
+            const y = Math.abs(dir.y) > eps ? (dir.y > 0 ? 1 : -1) : 0;
+            const z = Math.abs(dir.z) > eps ? (dir.z > 0 ? 1 : -1) : 0;
+            return axisToFace[`${x},${y},${z}`];
+        }
+
+        // Helper: local axis vector for a given face (before rotation)
+        function faceToLocalAxis(face) {
+            switch (face) {
+                case 'U': return new THREE.Vector3(0, 1, 0);
+                case 'D': return new THREE.Vector3(0, -1, 0);
+                case 'L': return new THREE.Vector3(-1, 0, 0);
+                case 'R': return new THREE.Vector3(1, 0, 0);
+                case 'F': return new THREE.Vector3(0, 0, 1);
+                case 'B': return new THREE.Vector3(0, 0, -1);
+                default: return new THREE.Vector3(0, 0, 0);
+            }
+        }
+
+        // Helper: create a sticker as a child of a cubie
+        function addSticker(parent, face, pos, rot) {
+            const geo = new RoundedBoxGeometry(
+                effectiveSize * stickerSizeFactor,
+                effectiveSize * stickerSizeFactor,
+                stickerDepth,
+                5,
+                stickerDepth * 0.8
+            );
+            const mat = colorMaterials[face].clone();
+            const sticker = new THREE.Mesh(geo, mat);
+            sticker.position.set(pos[0], pos[1], pos[2]);
+            sticker.rotation.set(rot[0], rot[1], rot[2]);
+            sticker.userData = { face, type: 'sticker' };
+            parent.add(sticker);
+            allStickers.push(sticker);
+        }
+
+        // Build the cube from scratch (modified lighting)
+        function buildCube() {
+            // Clean up any ongoing animation
+            if (currentMoveAnimation) {
+                if (currentMoveAnimation.group) scene.remove(currentMoveAnimation.group);
+                currentMoveAnimation = null;
+            }
+
+            // Remove everything (cubies, old lights)
+            while (scene.children.length > 0) {
+                scene.remove(scene.children[0]);
+            }
+
+            // --- NEW LIGHTING: ambient + six spotlights (one per face) ---
+            const ambientLight = new THREE.AmbientLight(0x404060, 0.8); // soft base light
+            scene.add(ambientLight);
+
+            function createFaceLight(position) {
+                const light = new THREE.SpotLight(0xffffff, 1.0); // bright white
+                light.position.copy(position);
+                light.target.position.set(0, 0, 0);
+                light.angle = 0.7;        // cone angle (~40°)
+                light.penumbra = 0.3;      // soft edge
+                light.decay = 1;
+                light.distance = 20;        // reach far enough
+                return light;
+            }
+
+            const lightPositions = [
+                new THREE.Vector3(5, 0, 0),   // right face (+X)
+                new THREE.Vector3(-5, 0, 0),  // left face (-X)
+                new THREE.Vector3(0, 5, 0),   // top face (+Y)
+                new THREE.Vector3(0, -5, 0),  // bottom face (-Y)
+                new THREE.Vector3(0, 0, 5),   // front face (+Z)
+                new THREE.Vector3(0, 0, -5)   // back face (-Z)
+            ];
+
+            lightPositions.forEach(pos => {
+                const light = createFaceLight(pos);
+                scene.add(light);
+                scene.add(light.target); // target must be added to the scene
+            });
+
+            // --- Build the cube ---
+            allStickers = [];
+            const newCubies = [];
+
+            for (let x = -1; x <= 1; x++) {
+                const row = [];
+                for (let y = -1; y <= 1; y++) {
+                    const col = [];
+                    for (let z = -1; z <= 1; z++) {
+                        const radius = effectiveSize * 0.05;
+                        const smoothness = 4;
+                        const bodyGeo = new RoundedBoxGeometry(
+                            effectiveSize,
+                            effectiveSize,
+                            effectiveSize,
+                            smoothness,
+                            radius
+                        );
+                        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 });
+                        const cubie = new THREE.Mesh(bodyGeo, bodyMat);
+                        cubie.position.set(
+                            x * (effectiveSize + gap),
+                            y * (effectiveSize + gap),
+                            z * (effectiveSize + gap)
+                        );
+                        cubie.userData = { type: 'cubie' };
+
+                        const offset = effectiveSize / 2 - 0.002;
+
+                        if (x === 1) addSticker(cubie, 'R', [offset, 0, 0], [0, Math.PI / 2, 0]);
+                        if (x === -1) addSticker(cubie, 'L', [-offset, 0, 0], [0, -Math.PI / 2, 0]);
+                        if (y === 1) addSticker(cubie, 'U', [0, offset, 0], [-Math.PI / 2, 0, 0]);
+                        if (y === -1) addSticker(cubie, 'D', [0, -offset, 0], [Math.PI / 2, 0, 0]);
+                        if (z === 1) addSticker(cubie, 'F', [0, 0, offset], [0, 0, 0]);
+                        if (z === -1) addSticker(cubie, 'B', [0, 0, -offset], [0, Math.PI, 0]);
+
+                        scene.add(cubie);
+                        col.push(cubie);
+                    }
+                    row.push(col);
+                }
+                newCubies.push(row);
+            }
+
+            cubies = newCubies;
+
+            // Set default center colors
+            for (const face in defaultCenters) {
+                const [x, y, z] = faceToCoord(face);
+                const centerCubie = cubies[x + 1][y + 1][z + 1];
+                centerCubie.children.forEach(child => {
+                    if (child.userData.face === face) {
+                        child.material.color.setStyle(defaultCenters[face]);
+                    }
+                });
+            }
+        }
+
+        function faceToCoord(face) {
+            switch (face) {
+                case 'U': return [0, 1, 0];
+                case 'D': return [0, -1, 0];
+                case 'L': return [-1, 0, 0];
+                case 'R': return [1, 0, 0];
+                case 'F': return [0, 0, 1];
+                case 'B': return [0, 0, -1];
+                default: return [0, 0, 0];
+            }
+        }
+
+        buildCube();
+
+        // --- Palette and color picking ---
+        let currentColor = '#ffffff';
+        const colorBtns = document.querySelectorAll('.color-btn');
+        colorBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                colorBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                currentColor = btn.dataset.color;
+            });
+        });
+        colorBtns[0].classList.add('selected');
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        renderer.domElement.addEventListener('click', (event) => {
+            if (currentMoveAnimation || playbackMode) return; // disable painting during animation or playback
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(allStickers);
+            if (intersects.length > 0) {
+                const sticker = intersects[0].object;
+                sticker.material.color.setStyle(currentColor);
+            }
+        });
+
+        document.getElementById('reset').addEventListener('click', () => {
+            if (playbackMode) return;
+            buildCube();
+            document.getElementById('solution').innerText = '';
+        });
+
+        // --- Speed slider logic ---
+        const speedSlider = document.getElementById('speed-slider');
+        const speedSpan = document.getElementById('speed-value');
+        speedSlider.addEventListener('input', (e) => {
+            const multiplier = parseFloat(e.target.value);
+            currentDuration = BASE_DURATION / multiplier;
+            speedSpan.innerText = multiplier.toFixed(1) + 'x';
+        });
+
+        // --- Animated layer rotation ---
+        function startLayerRotation(axis, layerIndex, angle) {
+            return new Promise((resolve) => {
+                // Collect cubies in the layer
+                const selected = [];
+                for (let x = 0; x < 3; x++) {
+                    for (let y = 0; y < 3; y++) {
+                        for (let z = 0; z < 3; z++) {
+                            const cubie = cubies[x][y][z];
+                            let belongs = false;
+                            if (axis === 'x' && x === layerIndex + 1) belongs = true;
+                            if (axis === 'y' && y === layerIndex + 1) belongs = true;
+                            if (axis === 'z' && z === layerIndex + 1) belongs = true;
+                            if (belongs) selected.push(cubie);
+                        }
+                    }
+                }
+
+                // Create group and attach cubies
+                const group = new THREE.Group();
+                selected.forEach(c => {
+                    scene.remove(c);
+                    group.add(c);
+                });
+                scene.add(group);
+
+                // Set initial rotation (0)
+                group.rotation.set(0, 0, 0);
+
+                // Store animation state with current duration (snapshot)
+                currentMoveAnimation = {
+                    group,
+                    axis,
+                    startAngle: 0,
+                    targetAngle: angle,
+                    startTime: performance.now(),
+                    duration: currentDuration, // use the speed-adjusted duration
+                    resolve: () => {
+                        // Finalize: update cubies' world transforms
+                        selected.forEach(c => {
+                            const pos = c.getWorldPosition(new THREE.Vector3());
+                            const quat = c.getWorldQuaternion(new THREE.Quaternion());
+                            group.remove(c);
+                            c.position.copy(pos);
+                            c.quaternion.copy(quat);
+                            scene.add(c);
+                        });
+                        scene.remove(group);
+
+                        // Rebuild cubies array
+                        const newCubies = Array(3).fill().map(() =>
+                            Array(3).fill().map(() => Array(3).fill(null))
+                        );
+                        for (let x = 0; x < 3; x++) for (let y = 0; y < 3; y++) for (let z = 0; z < 3; z++) newCubies[x][y][z] = null;
+
+                        scene.traverse(obj => {
+                            if (obj.userData.type === 'cubie') {
+                                const step = effectiveSize + gap;
+                                const ix = Math.round(obj.position.x / step) + 1;
+                                const iy = Math.round(obj.position.y / step) + 1;
+                                const iz = Math.round(obj.position.z / step) + 1;
+                                if (ix >= 0 && ix < 3 && iy >= 0 && iy < 3 && iz >= 0 && iz < 3) {
+                                    newCubies[ix][iy][iz] = obj;
+                                }
+                            }
+                        });
+                        cubies = newCubies;
+
+                        currentMoveAnimation = null;
+                        resolve();
+                    }
+                };
+            });
+        }
+
+        // Perform a single move with animation
+        async function performMove(moveStr) {
+            const axisMap = { U: 'y', D: 'y', L: 'x', R: 'x', F: 'z', B: 'z' };
+            const layerMap = { U: 1, D: -1, L: -1, R: 1, F: 1, B: -1 };
+            const dirMap = { "'": -1, "2": 2, "": 1 };
+            const faceSign = { U: -1, D: 1, F: -1, B: 1, L: 1, R: -1 };
+
+            const face = moveStr[0];
+            const suffix = moveStr.slice(1);
+            const dir = dirMap[suffix] || 1;
+
+            const axis = axisMap[face];
+            const layerIdx = layerMap[face];
+            const angle = faceSign[face] * (Math.PI / 2) * dir;
+
+            await startLayerRotation(axis, layerIdx, angle);
+        }
+
+        // Animate a sequence of moves
+        async function animateSolution(solutionString) {
+            const moves = solutionString.trim().split(/\s+/);
+            for (let i = 0; i < moves.length; i++) {
+                await performMove(moves[i]);
+            }
+        }
+
+        // --- Validate cube string counts ---
+        function validateCubeString(cubeString) {
+            const counts = { U: 0, D: 0, L: 0, R: 0, F: 0, B: 0 };
+            for (let char of cubeString) {
+                if (counts.hasOwnProperty(char)) counts[char]++;
+                else return { valid: false, message: `Invalid character '${char}' in cube string` };
+            }
+            const errors = [];
+            for (let [face, count] of Object.entries(counts)) {
+                if (count !== 9) {
+                    const faceName = { U: 'Yellow', D: 'White', L: 'Orange', R: 'Red', F: 'Blue', B: 'Green' }[face];
+                    errors.push(`${faceName} (${face}) appears ${count} times (should be 9)`);
+                }
+            }
+            if (errors.length > 0) {
+                return { valid: false, message: errors.join('\n') };
+            }
+            return { valid: true };
+        }
+
+        // --- Build cube string for solver ---
+        function getCubeString() {
+            // Build direction maps for every cubie
+            for (let x = 0; x < 3; x++) {
+                for (let y = 0; y < 3; y++) {
+                    for (let z = 0; z < 3; z++) {
+                        const cubie = cubies[x][y][z];
+                        if (!cubie) continue;
+                        const dirMap = {};
+                        cubie.children.forEach(child => {
+                            if (child.userData.type !== 'sticker') return;
+                            const localAxis = faceToLocalAxis(child.userData.face);
+                            const worldDir = localAxis.clone().applyQuaternion(cubie.quaternion).normalize();
+                            const globalFace = getFaceFromDirection(worldDir);
+                            if (globalFace) {
+                                dirMap[globalFace] = '#' + child.material.color.getHexString();
+                            }
+                        });
+                        cubie.userData.tempDirMap = dirMap;
+                    }
+                }
+            }
+
+            // Get center colors using the orientation‑aware maps
+            const centerColors = {};
+            const centerIndices = {
+                U: [1, 2, 1], D: [1, 0, 1], L: [0, 1, 1],
+                R: [2, 1, 1], F: [1, 1, 2], B: [1, 1, 0]
+            };
+            for (const face of ['U', 'D', 'L', 'R', 'F', 'B']) {
+                const [ix, iy, iz] = centerIndices[face];
+                const cubie = cubies[ix][iy][iz];
+                if (!cubie) {
+                    showError(`Center cubie for face ${face} not found`);
+                    return null;
+                }
+                const color = cubie.userData.tempDirMap[face];
+                if (!color) {
+                    showError(`Center of face ${face} not painted or missing sticker`);
+                    return null;
+                }
+                centerColors[face] = color;
+            }
+
+            // All six center colors must be distinct
+            const colorSet = new Set(Object.values(centerColors));
+            if (colorSet.size !== 6) {
+                showError('All six centers must have different colors!');
+                return null;
+            }
+
+            const hexToFace = {};
+            for (const [face, hex] of Object.entries(centerColors)) {
+                hexToFace[hex] = face;
+            }
+
+            // Build the cube string in the order expected by the solver: U, R, F, D, L, B
+            const faceOrder = ['U', 'R', 'F', 'D', 'L', 'B'];
+            let cubeString = '';
+
+            for (const face of faceOrder) {
+                const positions = [];
+                // Correct scanning order for each face (matches Facelet indices)
+                if (face === 'U') {
+                    // U face: from back (z=-1) to front (z=1), left to right (x)
+                    for (let iz = -1; iz <= 1; iz++)
+                        for (let ix = -1; ix <= 1; ix++)
+                            positions.push([ix, 1, iz]);
+                } else if (face === 'D') {
+                    // D face: from front (z=1) to back (z=-1), left to right (x)
+                    for (let iz = 1; iz >= -1; iz--)
+                        for (let ix = -1; ix <= 1; ix++)
+                            positions.push([ix, -1, iz]);
+                } else if (face === 'L') {
+                    for (let iy = 1; iy >= -1; iy--)
+                        for (let iz = -1; iz <= 1; iz++)
+                            positions.push([-1, iy, iz]);
+                } else if (face === 'R') {
+                    for (let iy = 1; iy >= -1; iy--)
+                        for (let iz = 1; iz >= -1; iz--)
+                            positions.push([1, iy, iz]);
+                } else if (face === 'F') {
+                    for (let iy = 1; iy >= -1; iy--)
+                        for (let ix = -1; ix <= 1; ix++)
+                            positions.push([ix, iy, 1]);
+                } else if (face === 'B') {
+                    for (let iy = 1; iy >= -1; iy--)
+                        for (let ix = 1; ix >= -1; ix--)
+                            positions.push([ix, iy, -1]);
+                }
+
+                for (let [dx, dy, dz] of positions) {
+                    const ix = dx + 1;
+                    const iy = dy + 1;
+                    const iz = dz + 1;
+                    const cubie = cubies[ix][iy][iz];
+                    if (!cubie) {
+                        showError(`Cubie missing at (${dx},${dy},${dz})`);
+                        return null;
+                    }
+                    const stickerColor = cubie.userData.tempDirMap[face];
+                    if (!stickerColor) {
+                        showError(`Missing sticker on face ${face} at (${dx},${dy},${dz})`);
+                        return null;
+                    }
+                    const faceLetter = hexToFace[stickerColor];
+                    if (!faceLetter) {
+                        showError(`Color ${stickerColor} on face ${face} doesn't match any center`);
+                        return null;
+                    }
+                    cubeString += faceLetter;
+                }
+            }
+
+            // Clean up temporary data
+            for (let x = 0; x < 3; x++) {
+                for (let y = 0; y < 3; y++) {
+                    for (let z = 0; z < 3; z++) {
+                        if (cubies[x][y][z]) {
+                            delete cubies[x][y][z].userData.tempDirMap;
+                        }
+                    }
+                }
+            }
+
+            return cubeString;
+        }
+
+        // --- Helper: map face letter to default color hex ---
+        const faceColorMap = {
+            'U': '#ffff00', // yellow
+            'D': '#ffffff', // white
+            'F': '#0000ff', // blue
+            'B': '#00ff00', // green
+            'L': '#fb6712', // orange
+            'R': '#ff0000'  // red
+        };
+
+        // --- Apply a cube string (54 letters) to the current cube ---
+        function applyCubeString(cubeString) {
+            if (cubeString.length !== 54) {
+                showError('Invalid cube string length');
+                return;
+            }
+            // Get all stickers in the order of the cube string
+            const stickersInOrder = getStickersInOrder();
+            for (let i = 0; i < 54; i++) {
+                const faceLetter = cubeString[i];
+                const colorHex = faceColorMap[faceLetter];
+                if (!colorHex) {
+                    showError(`Invalid face letter: ${faceLetter}`);
+                    return;
+                }
+                stickersInOrder[i].material.color.setStyle(colorHex);
+            }
+        }
+
+        // --- Return array of sticker objects in the exact order of the cube string ---
+        function getStickersInOrder() {
+            const order = [];
+            const faceOrder = ['U', 'R', 'F', 'D', 'L', 'B'];
+            for (const face of faceOrder) {
+                const positions = [];
+                // Same scanning order as in getCubeString()
+                if (face === 'U') {
+                    for (let iz = -1; iz <= 1; iz++)
+                        for (let ix = -1; ix <= 1; ix++)
+                            positions.push([ix, 1, iz]);
+                } else if (face === 'D') {
+                    for (let iz = 1; iz >= -1; iz--)
+                        for (let ix = -1; ix <= 1; ix++)
+                            positions.push([ix, -1, iz]);
+                } else if (face === 'L') {
+                    for (let iy = 1; iy >= -1; iy--)
+                        for (let iz = -1; iz <= 1; iz++)
+                            positions.push([-1, iy, iz]);
+                } else if (face === 'R') {
+                    for (let iy = 1; iy >= -1; iy--)
+                        for (let iz = 1; iz >= -1; iz--)
+                            positions.push([1, iy, iz]);
+                } else if (face === 'F') {
+                    for (let iy = 1; iy >= -1; iy--)
+                        for (let ix = -1; ix <= 1; ix++)
+                            positions.push([ix, iy, 1]);
+                } else if (face === 'B') {
+                    for (let iy = 1; iy >= -1; iy--)
+                        for (let ix = 1; ix >= -1; ix--)
+                            positions.push([ix, iy, -1]);
+                }
+                for (let [dx, dy, dz] of positions) {
+                    const ix = dx + 1;
+                    const iy = dy + 1;
+                    const iz = dz + 1;
+                    const cubie = cubies[ix][iy][iz];
+                    // Find the sticker that belongs to the current face (global face)
+                    const sticker = cubie.children.find(child => {
+                        if (child.userData.type !== 'sticker') return false;
+                        const localAxis = faceToLocalAxis(child.userData.face);
+                        const worldDir = localAxis.clone().applyQuaternion(cubie.quaternion).normalize();
+                        const globalFace = getFaceFromDirection(worldDir);
+                        return globalFace === face;
+                    });
+                    if (sticker) order.push(sticker);
+                }
+            }
+            return order;
+        }
+
+        // --- Save current cube colors as array of 54 hex strings ---
+        function saveCubeColors() {
+            const stickers = getStickersInOrder();
+            return stickers.map(s => '#' + s.material.color.getHexString());
+        }
+
+        // --- Restore cube colors from saved array (resets cube to solved orientation) ---
+        function restoreCubeColors(colorsArray) {
+            // Kill any ongoing animation
+            if (currentMoveAnimation) {
+                if (currentMoveAnimation.group) scene.remove(currentMoveAnimation.group);
+                currentMoveAnimation = null;
+            }
+            buildCube(); // resets to default centers and orientation
+            const stickers = getStickersInOrder();
+            for (let i = 0; i < 54 && i < colorsArray.length; i++) {
+                stickers[i].material.color.setStyle(colorsArray[i]);
+            }
+        }
+
+        // --- Play a solution on the current cube (animated) ---
+        async function playSolution(solutionString) {
+            const moves = solutionString.trim().split(/\s+/);
+            for (let move of moves) {
+                await performMove(move);
+            }
+        }
+
+        // --- Create a 3D CSS cube thumbnail from a cube string ---
+        function create3DCubeThumbnail(cubeString) {
+            const container = document.createElement('div');
+            container.className = 'cube-thumbnail';
+
+            const faceStarts = { U: 0, R: 9, F: 18, D: 27, L: 36, B: 45 };
+            const faceClasses = { U: 'up', D: 'down', L: 'left', R: 'right', F: 'front', B: 'back' };
+
+            for (let face of ['U', 'R', 'F', 'D', 'L', 'B']) {
+                const start = faceStarts[face];
+                const colors = cubeString.slice(start, start + 9).split('').map(letter => faceColorMap[letter] || '#000');
+
+                const faceDiv = document.createElement('div');
+                faceDiv.className = `face ${faceClasses[face]}`;
+
+                for (let i = 0; i < 9; i++) {
+                    const cell = document.createElement('div');
+                    cell.style.backgroundColor = colors[i];
+                    faceDiv.appendChild(cell);
+                }
+
+                container.appendChild(faceDiv);
+            }
+
+            return container;
+        }
+
+        // --- Load history from backend and display ---
+        async function refreshHistory() {
+            if (!window.pywebview) return;
+            try {
+                const history = await window.pywebview.api.get_history();
+                const listDiv = document.getElementById('history-list');
+                listDiv.innerHTML = '';
+                history.reverse(); // show newest first
+                for (let entry of history) {
+                    const entryDiv = document.createElement('div');
+                    entryDiv.className = 'history-entry';
+
+                    // 3D Cube Thumbnail
+                    const thumbnail = create3DCubeThumbnail(entry.cube_string);
+                    entryDiv.appendChild(thumbnail);
+
+                    // --- Interactive rotation for this thumbnail ---
+                    let isDragging = false;
+                    let prevX, prevY;
+                    let rotX = -20, rotY = 30; // match default transform
+
+                    thumbnail.style.willChange = 'transform';
+
+                    // Mouse events
+                    thumbnail.addEventListener('mousedown', (e) => {
+                        if (e.target.closest('button')) return;
+                        e.preventDefault();
+                        isDragging = true;
+                        prevX = e.clientX;
+                        prevY = e.clientY;
+                        thumbnail.style.cursor = 'grabbing';
+                    });
+
+                    window.addEventListener('mousemove', (e) => {
+                        if (!isDragging) return;
+                        const dx = e.clientX - prevX;
+                        const dy = e.clientY - prevY;
+                        rotY += dx * 1.2;
+                        rotX -= dy * 1.2;
+                        rotX = Math.max(-90, Math.min(90, rotX));
+                        thumbnail.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+                        prevX = e.clientX;
+                        prevY = e.clientY;
+                    });
+
+                    window.addEventListener('mouseup', () => {
+                        if (isDragging) {
+                            isDragging = false;
+                            thumbnail.style.cursor = 'grab';
+                        }
+                    });
+
+                    // Touch events (same correction)
+                    thumbnail.addEventListener('touchstart', (e) => {
+                        if (e.target.closest('button')) return;
+                        e.preventDefault();
+                        const touch = e.touches[0];
+                        isDragging = true;
+                        prevX = touch.clientX;
+                        prevY = touch.clientY;
+                    });
+
+                    window.addEventListener('touchmove', (e) => {
+                        if (!isDragging) return;
+                        e.preventDefault();
+                        const touch = e.touches[0];
+                        const dx = touch.clientX - prevX;
+                        const dy = touch.clientY - prevY;
+                        rotY += dx * 1.2;
+                        rotX -= dy * 1.2;
+                        rotX = Math.max(-90, Math.min(90, rotX));
+                        thumbnail.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+                        prevX = touch.clientX;
+                        prevY = touch.clientY;
+                    });
+
+                    window.addEventListener('touchend', () => {
+                        if (isDragging) {
+                            isDragging = false;
+                            thumbnail.style.cursor = 'grab';
+                        }
+                    });
+
+                    // Info
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'entry-info';
+                    const algoP = document.createElement('p');
+                    algoP.className = 'entry-algo';
+                    algoP.textContent = entry.solution;
+                    const timeP = document.createElement('p');
+                    timeP.className = 'entry-timestamp';
+                    timeP.textContent = new Date(entry.timestamp).toLocaleString();
+                    infoDiv.appendChild(algoP);
+                    infoDiv.appendChild(timeP);
+                    entryDiv.appendChild(infoDiv);
+
+                    // Three-dot menu
+                    const menuDiv = document.createElement('div');
+                    menuDiv.className = 'entry-menu';
+
+                    const menuBtn = document.createElement('button');
+                    menuBtn.className = 'menu-btn';
+                    menuBtn.innerHTML = '⋮';  // vertical ellipsis
+                    menuBtn.setAttribute('aria-label', 'Options');
+
+                    const dropdown = document.createElement('div');
+                    dropdown.className = 'menu-dropdown';
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (confirm('Delete this history entry permanently?')) {
+                            try {
+                                const result = await window.pywebview.api.delete_history(entry.timestamp);
+                                if (result.error) {
+                                    showError('Delete failed: ' + result.error);
+                                } else {
+                                    // Refresh the history list
+                                    refreshHistory();
+                                }
+                            } catch (err) {
+                                showError('Delete error: ' + err);
+                            }
+                        }
+                        dropdown.classList.remove('show');
+                    };
+
+                    dropdown.appendChild(deleteBtn);
+                    menuDiv.appendChild(menuBtn);
+                    menuDiv.appendChild(dropdown);
+
+                    entryDiv.appendChild(menuDiv);
+
+                    // Toggle dropdown on button click
+                    menuBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        // Close any other open dropdowns first
+                        document.querySelectorAll('.menu-dropdown.show').forEach(d => d.classList.remove('show'));
+                        dropdown.classList.toggle('show');
+                    });
+
+                    // Load & Play button
+                    const btn = document.createElement('button');
+                    btn.className = 'load-play-btn';
+                    btn.textContent = 'Load & Play';
+                    btn.onclick = async () => {
+                        // Hide history overlay
+                        document.getElementById('history-overlay').style.display = 'none';
+
+                        // If not already in playback mode, save current main cube colors
+                        if (!playbackMode) {
+                            savedMainCubeColors = saveCubeColors();
+                        }
+
+                        // Apply the history cube state
+                        applyCubeString(entry.cube_string);
+                        // Display solution text
+                        document.getElementById('solution').innerText = `Solution: ${entry.solution}`;
+
+                        // Enter playback mode: hide main controls, show playback back button
+                        playbackMode = true;
+                        document.getElementById('palette').style.opacity = '0';
+                        document.getElementById('palette').style.pointerEvents = 'none';
+                        document.getElementById('controls').style.opacity = '0';
+                        document.getElementById('controls').style.pointerEvents = 'none';
+                        document.getElementById('info').style.opacity = '0';
+                        document.getElementById('history-btn').style.display = 'none';
+                        document.getElementById('playback-back-btn').style.display = 'block';
+
+                        // Play the solution
+                        await playSolution(entry.solution);
+                    };
+                    entryDiv.appendChild(btn);
+
+                    listDiv.appendChild(entryDiv);
+                }
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.entry-menu')) {
+                        document.querySelectorAll('.menu-dropdown.show').forEach(d => d.classList.remove('show'));
+                    }
+                });
+
+            } catch (err) {
+                showError('Failed to load history: ' + err);
+            }
+        }
+
+        // --- Show/hide history overlay ---
+        document.getElementById('history-btn').addEventListener('click', () => {
+            refreshHistory();
+            document.getElementById('history-overlay').style.display = 'block';
+        });
+
+        // Playback back button: opens history overlay (stay in playback mode)
+        document.getElementById('playback-back-btn').addEventListener('click', () => {
+            refreshHistory();
+            document.getElementById('history-overlay').style.display = 'block';
+        });
+
+        // History overlay back button: close overlay and if in playback mode, exit playback and restore main cube
+        document.getElementById('back-btn').addEventListener('click', () => {
+            document.getElementById('history-overlay').style.display = 'none';
+            if (playbackMode) {
+                // Exit playback mode: restore saved main cube colors
+                if (savedMainCubeColors) {
+                    restoreCubeColors(savedMainCubeColors);
+                }
+                playbackMode = false;
+                // Show main controls, hide playback button
+                document.getElementById('palette').style.opacity = '1';
+                document.getElementById('palette').style.pointerEvents = 'auto';
+                document.getElementById('controls').style.opacity = '1';
+                document.getElementById('controls').style.pointerEvents = 'auto';
+                document.getElementById('info').style.opacity = '1';
+                document.getElementById('history-btn').style.display = 'block';
+                document.getElementById('playback-back-btn').style.display = 'none';
+                // Clear solution text? optional
+                // document.getElementById('solution').innerText = '';
+            }
+        });
+
+        // --- Solve button (modified to save history) ---
+        document.getElementById('solve').addEventListener('click', async () => {
+            if (playbackMode) return;
+
+            camera.position.set(7, 6, 8);
+            controls.target.set(0, 0, 0);
+            controls.update();
+
+            const cubeString = getCubeString();
+            if (!cubeString) return;
+
+            // Validate counts before sending
+            const validation = validateCubeString(cubeString);
+            if (!validation.valid) {
+                showError(validation.message);
+                return;
+            }
+
+            if (window.pywebview && window.pywebview.api) {
+                try {
+                    const result = await window.pywebview.api.solve(cubeString);
+                    if (result.error) {
+                        showError(result.error);
+                    } else {
+                        document.getElementById('solution').innerText = `Solution: ${result.solution}`;
+                        hideError();
+                        // Save to history
+                        try {
+                            await window.pywebview.api.add_history(cubeString, result.solution);
+                        } catch (e) {
+                            console.warn('Failed to save history:', e);
+                        }
+                        await animateSolution(result.solution);
+                    }
+                } catch (err) {
+                    showError('Failed to call solver: ' + err);
+                }
+            } else {
+                showError('pywebview API not available');
+            }
+        });
+
+        function showError(msg) {
+            const errDiv = document.getElementById('error-message');
+            errDiv.innerText = msg;
+            errDiv.style.display = 'block';
+        }
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        // --- Animation loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (currentMoveAnimation) {
+                const { group, axis, startAngle, targetAngle, startTime, duration, resolve } = currentMoveAnimation;
+                const elapsed = performance.now() - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                const currentAngle = startAngle + (targetAngle - startAngle) * eased;
+
+                if (axis === 'x') group.rotation.x = currentAngle;
+                else if (axis === 'y') group.rotation.y = currentAngle;
+                else if (axis === 'z') group.rotation.z = currentAngle;
+
+                if (t === 1) {
+                    resolve();
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>
